@@ -1,0 +1,15 @@
+# Node
+node_modules/
+.next/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Env files
+.env
+.env.local
+
+# Local data
+apps/api/data/users.json

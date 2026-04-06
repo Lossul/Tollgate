@@ -13,3 +13,4 @@ __pycache__/
 
 # Local data
 apps/api/data/users.json
+apps/api/data/trials.json

@@ -27,6 +27,9 @@ class Settings:
     supabase_service_role_key: str | None
     session_cookie_name: str
     gmail_scopes: list[str]
+    claude_api_key: str | None
+    claude_model: str
+    claude_api_url: str
 
 
 def load_settings() -> Settings:
@@ -41,6 +44,9 @@ def load_settings() -> Settings:
     supabase_url = os.getenv("SUPABASE_URL")
     supabase_service_role_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     session_cookie_name = os.getenv("SESSION_COOKIE_NAME", "tg_session")
+    claude_api_key = os.getenv("CLAUDE_API_KEY")
+    claude_model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-latest")
+    claude_api_url = os.getenv("CLAUDE_API_URL", "https://api.anthropic.com/v1/messages")
     gmail_scopes = [
         "openid",
         "email",
@@ -59,6 +65,9 @@ def load_settings() -> Settings:
         supabase_service_role_key=supabase_service_role_key,
         session_cookie_name=session_cookie_name,
         gmail_scopes=gmail_scopes,
+        claude_api_key=claude_api_key,
+        claude_model=claude_model,
+        claude_api_url=claude_api_url,
     )
 
 

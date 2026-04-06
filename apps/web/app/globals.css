@@ -65,6 +65,19 @@ a {
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.25);
 }
 
+button.cta {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+button.cta:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+}
+
 .card {
   background: rgba(255, 255, 255, 0.85);
   border-radius: 24px;

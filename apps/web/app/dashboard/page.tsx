@@ -77,6 +77,11 @@ export default function Dashboard() {
         <div className="meta">
           <div>Next step: run your first scan.</div>
           <div>We will list trials here once scanning is live.</div>
+          <div>
+            <a className="cta" href="/scan">
+              Scan Inbox
+            </a>
+          </div>
         </div>
       </section>
     </main>

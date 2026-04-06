@@ -57,3 +57,20 @@ async def fetch_userinfo(access_token: str) -> dict[str, Any]:
         response = await client.get(GOOGLE_USERINFO_URL, headers=headers)
         response.raise_for_status()
         return response.json()
+
+
+async def refresh_access_token(refresh_token: str) -> dict[str, Any]:
+    if not settings.google_client_secret:
+        raise OAuthConfigError("GOOGLE_CLIENT_SECRET is not set")
+
+    payload = {
+        "client_id": settings.google_client_id,
+        "client_secret": settings.google_client_secret,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    }
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        response = await client.post(GOOGLE_TOKEN_URL, data=payload)
+        response.raise_for_status()
+        return response.json()

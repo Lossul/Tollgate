@@ -78,6 +78,14 @@ async def upsert_trials(
     return _upsert_trials_local(user_id, trials)
 
 
+async def replace_email_trials(
+    user_id: str, trials: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    if settings.supabase_url and settings.supabase_service_role_key:
+        return await _replace_email_trials_supabase(user_id, trials)
+    return _replace_email_trials_local(user_id, trials)
+
+
 def _list_trials_local(user_id: str) -> list[dict[str, Any]]:
     data = _load_trials_local()
     return [trial for trial in data if trial.get("user_id") == user_id]
@@ -100,6 +108,22 @@ def _upsert_trials_local(
         else:
             data.append(trial)
     _save_trials_local(data)
+    return trials
+
+
+def _replace_email_trials_local(
+    user_id: str, trials: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    data = _load_trials_local()
+    kept = [
+        trial
+        for trial in data
+        if not (
+            trial.get("user_id") == user_id and trial.get("source", "email") == "email"
+        )
+    ]
+    kept.extend(trials)
+    _save_trials_local(kept)
     return trials
 
 
@@ -196,6 +220,36 @@ async def _upsert_trials_supabase(
         response = await client.post(url, headers=headers, json=filtered)
         response.raise_for_status()
         return response.json()
+
+
+async def _replace_email_trials_supabase(
+    user_id: str, trials: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    base_url = settings.supabase_url.rstrip("/")
+    headers = {
+        "Authorization": f"Bearer {settings.supabase_service_role_key}",
+        "apikey": settings.supabase_service_role_key,
+    }
+    delete_url = base_url + "/rest/v1/trials?user_id=eq." + user_id + "&source=eq.email"
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        delete_response = await client.delete(delete_url, headers=headers)
+        delete_response.raise_for_status()
+
+    if not trials:
+        return []
+
+    insert_url = base_url + "/rest/v1/trials"
+    insert_headers = {
+        **headers,
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        insert_response = await client.post(
+            insert_url, headers=insert_headers, json=trials
+        )
+        insert_response.raise_for_status()
+        return insert_response.json()
 
 
 async def _find_existing_trial_message_ids(

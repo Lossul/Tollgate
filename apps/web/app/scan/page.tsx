@@ -16,6 +16,7 @@ export default function ScanPage() {
   );
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   const runScan = async () => {
     setStatus("loading");
@@ -25,7 +26,7 @@ export default function ScanPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ max_results: 50 })
+        body: JSON.stringify({ max_results: 200 })
       });
       if (!response.ok) {
         const text = await response.text();
@@ -57,23 +58,50 @@ export default function ScanPage() {
     }
   };
 
+  const signOutAndSwitch = async () => {
+    try {
+      setSigningOut(true);
+      await fetch(`${apiBase}/auth/logout`, {
+        method: "POST",
+        credentials: "include"
+      });
+    } finally {
+      window.location.href = "/";
+    }
+  };
+
   return (
-    <main className="main">
-      <section className="hero">
-        <div className="status">Scan Inbox</div>
-        <h1>Find every trial in your Gmail.</h1>
+    <main className="main" aria-busy={status === "loading"}>
+      <section className="hero" aria-labelledby="scan-title">
+        <div className="status" aria-live="polite">
+          Scan Inbox
+        </div>
+        <div>
+          <a href="/dashboard">Back to Dashboard</a>
+        </div>
+        <div>
+          <button className="cta" onClick={signOutAndSwitch} disabled={signingOut}>
+            {signingOut ? "Signing out..." : "Sign Out / Switch Account"}
+          </button>
+        </div>
+        <h1 id="scan-title">Find every trial in your Gmail.</h1>
         <p>
-          We will scan your last 50 Gmail messages for trial confirmations and
+          We will scan up to 200 Gmail messages for trial confirmations and
           billing notices, then populate your dashboard.
         </p>
         <div>
-          <button className="cta" onClick={runScan} disabled={status === "loading"}>
+          <button
+            className="cta"
+            onClick={runScan}
+            disabled={status === "loading"}
+            aria-label="Start inbox scan"
+          >
             {status === "loading" ? "Scanning..." : "Start Scan"}
           </button>
         </div>
       </section>
-      <section className="card">
-        <div className="meta">
+      <section className="card" aria-live="polite" aria-atomic="true">
+        <div className="meta" role={status === "error" ? "alert" : "status"}>
           {status === "idle" && <div>Ready when you are.</div>}
           {status === "loading" && <div>Scanning Gmail...</div>}
           {status === "done" && (
@@ -82,6 +110,9 @@ export default function ScanPage() {
               <div>Added {result?.created ?? 0} trial candidates.</div>
               <div>
                 Head back to the dashboard to see the list as we refine parsing.
+              </div>
+              <div>
+                <a href="/dashboard">Go to Dashboard</a>
               </div>
             </>
           )}

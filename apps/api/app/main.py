@@ -23,11 +23,23 @@ from .google_oauth import (
     fetch_userinfo,
     refresh_access_token,
 )
-from .storage import get_user, list_trials, upsert_trials, upsert_user
+from .storage import get_user, list_trials, replace_email_trials, upsert_user
 from .trial_parser import parse_trial_email
 from .trial_utils import days_remaining, status_from_end_date
 
 app = FastAPI(title="Tollgate API")
+TRIAL_HINT_TERMS = (
+    "free trial",
+    "trial ending",
+    "trial ends",
+    "trial expires",
+    "trial period",
+    "will be charged",
+    "after your trial",
+    "cancel anytime",
+    "auto-renew",
+    "renews on",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -160,7 +172,7 @@ async def me(
 
 
 class ScanRequest(BaseModel):
-    max_results: int = Field(default=50, ge=1, le=200)
+    max_results: int = Field(default=200, ge=1, le=500)
     query: str | None = None
 
 
@@ -191,7 +203,7 @@ async def scan_inbox(
             user["google_tokens"] = tokens
             await upsert_user(user)
 
-    query = payload.query or 'newer_than:1y (trial OR \"free trial\" OR \"trial ends\" OR \"trial ending\" OR subscription OR billing)'
+    query = payload.query or '(trial OR "free trial" OR "trial ending" OR "trial ends" OR subscription OR billing OR renew OR invoice OR charged OR cancel)'
     try:
         messages = await list_messages(
             access_token, max_results=payload.max_results, query=query
@@ -219,8 +231,12 @@ async def scan_inbox(
         snippet = message.get("snippet", "")
 
         parsed = await parse_trial_email(subject=subject, sender=sender, snippet=snippet)
-        combined_lower = f"{subject} {snippet}".lower()
-        if parsed.confidence < 0.2 and "trial" not in combined_lower:
+        combined_lower = f"{subject} {snippet} {sender}".lower()
+        has_hint = any(term in combined_lower for term in TRIAL_HINT_TERMS)
+        has_parse_signal = bool(parsed.trial_end_date or parsed.cancel_url)
+        if not parsed.is_trial and not (has_hint and parsed.confidence >= 0.3):
+            continue
+        if parsed.confidence < 0.35 and not has_parse_signal:
             continue
 
         end_date = parsed.trial_end_date
@@ -240,7 +256,7 @@ async def scan_inbox(
             }
         )
 
-    stored = await upsert_trials(user_id, trials)
+    stored = await replace_email_trials(user_id, trials)
     response_trials = [
         {
             **trial,

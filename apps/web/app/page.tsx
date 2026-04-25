@@ -8,11 +8,12 @@ export default function Home() {
     <main className="main">
       <section className="hero">
         <div className="status">Inbox-powered trial guardian</div>
-        <h1>Never get blindsided by a free-trial charge again.</h1>
+        <h1>See every subscription quietly charging you.</h1>
         <p>
-          Tollgate scans your Gmail, finds every trial confirmation and billing
-          notice, and gives you a single, living dashboard of what is expiring
-          next. One click to connect, zero manual input.
+          Tollgate scans your Gmail for billing receipts, renewal notices, and
+          free trials — then gives you one dashboard showing what you&apos;re
+          paying for and what is about to charge you. One click to connect, zero
+          manual input.
         </p>
         <div>
           <a className="cta" href={authUrl}>

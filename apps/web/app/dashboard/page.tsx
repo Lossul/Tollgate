@@ -9,9 +9,12 @@ type MeResponse = {
   email?: string;
 };
 
-type Trial = {
+type Subscription = {
   id: string;
   service_name: string;
+  subscription_type?: string | null;
+  billing_amount?: string | null;
+  billing_frequency?: string | null;
   end_date?: string | null;
   status?: string;
   days_remaining?: number | null;
@@ -19,18 +22,33 @@ type Trial = {
 };
 
 type TrialsResponse = {
-  trials: Trial[];
+  trials: Subscription[];
 };
+
+function subscriptionLabel(sub: Subscription): string {
+  if (sub.subscription_type === "free_trial") return "Free Trial";
+  if (sub.subscription_type === "paid_subscription") return "Subscription";
+  return "Subscription";
+}
+
+function billingBadge(sub: Subscription): string | null {
+  if (sub.billing_amount && sub.billing_frequency) {
+    return `${sub.billing_amount}/${sub.billing_frequency === "yearly" ? "yr" : sub.billing_frequency === "monthly" ? "mo" : sub.billing_frequency}`;
+  }
+  if (sub.billing_amount) return sub.billing_amount;
+  if (sub.billing_frequency) return sub.billing_frequency;
+  return null;
+}
 
 export default function Dashboard() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     "loading"
   );
   const [email, setEmail] = useState<string | null>(null);
-  const [trials, setTrials] = useState<Trial[]>([]);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [signingOut, setSigningOut] = useState(false);
 
-  const sortedTrials = [...trials].sort((a, b) => {
+  const sorted = [...subscriptions].sort((a, b) => {
     const aDays = typeof a.days_remaining === "number" ? a.days_remaining : 10_000;
     const bDays = typeof b.days_remaining === "number" ? b.days_remaining : 10_000;
     return aDays - bDays;
@@ -43,11 +61,9 @@ export default function Dashboard() {
       fetch(`${apiBase}/trials`, { credentials: "include" })
     ])
       .then(async ([meRes, trialsRes]) => {
-        if (!meRes.ok) {
-          throw new Error("Not authenticated");
-        }
+        if (!meRes.ok) throw new Error("Not authenticated");
         const meData = (await meRes.json()) as MeResponse;
-        let trialsData: Trial[] = [];
+        let trialsData: Subscription[] = [];
         if (trialsRes.ok) {
           const parsed = (await trialsRes.json()) as TrialsResponse;
           trialsData = parsed.trials ?? [];
@@ -57,7 +73,7 @@ export default function Dashboard() {
       .then(({ meData, trialsData }) => {
         if (!active) return;
         setEmail(meData.email ?? null);
-        setTrials(trialsData);
+        setSubscriptions(trialsData);
         setStatus("ready");
       })
       .catch(() => {
@@ -65,18 +81,13 @@ export default function Dashboard() {
         setStatus("error");
       });
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
   const signOutAndSwitch = async () => {
     try {
       setSigningOut(true);
-      await fetch(`${apiBase}/auth/logout`, {
-        method: "POST",
-        credentials: "include"
-      });
+      await fetch(`${apiBase}/auth/logout`, { method: "POST", credentials: "include" });
     } finally {
       window.location.href = "/";
     }
@@ -97,8 +108,7 @@ export default function Dashboard() {
       <main className="main">
         <section className="card">
           <div className="meta">
-            We could not verify your session. Head back to the home page to
-            connect Gmail.
+            We could not verify your session. Head back to the home page to connect Gmail.
           </div>
         </section>
       </main>
@@ -110,11 +120,11 @@ export default function Dashboard() {
       <section className="hero" aria-labelledby="dashboard-title">
         <div className="status">Gmail connected</div>
         <div>
-          <button className="cta" onClick={signOutAndSwitch} disabled={signingOut}>
+          <button type="button" className="cta" onClick={signOutAndSwitch} disabled={signingOut}>
             {signingOut ? "Signing out..." : "Sign Out / Switch Account"}
           </button>
         </div>
-        <h1 id="dashboard-title">Inbox is linked.</h1>
+        <h1 id="dashboard-title">Your subscriptions.</h1>
         <p>
           {email
             ? `Signed in as ${email}.`
@@ -124,9 +134,9 @@ export default function Dashboard() {
       <section className="card">
         <div className="meta">
           <div>
-            {trials.length > 0
-              ? `Detected ${trials.length} trial candidate${trials.length === 1 ? "" : "s"}.`
-              : "No trial candidates yet. Run a scan to populate your dashboard."}
+            {subscriptions.length > 0
+              ? `Detected ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}.`
+              : "No subscriptions found yet. Run a scan to detect what you're being charged for."}
           </div>
           <div>
             <a className="cta" href="/scan">
@@ -135,34 +145,50 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
-      {trials.length > 0 && (
-        <section className="card" aria-labelledby="trial-list-title">
-          <h2 id="trial-list-title">Detected Trials</h2>
+      {subscriptions.length > 0 && (
+        <section className="card" aria-labelledby="sub-list-title">
+          <h2 id="sub-list-title">Detected Subscriptions</h2>
           <ul className="trial-list">
-            {sortedTrials.map((trial) => (
-              <li key={trial.id} className="trial-item">
-                <div className="trial-title">{trial.service_name || "Unknown Service"}</div>
-                <div className="trial-meta">
-                  <span>
-                    End date: {trial.end_date || "Unknown"}
-                  </span>
-                  <span>
-                    Days left:{" "}
-                    {typeof trial.days_remaining === "number"
-                      ? String(trial.days_remaining)
-                      : "Unknown"}
-                  </span>
-                  <span className={`pill ${trial.status || "unknown"}`}>
-                    Status: {trial.status || "unknown"}
-                  </span>
-                </div>
-                {trial.cancel_url && (
-                  <a href={trial.cancel_url} target="_blank" rel="noreferrer">
-                    Cancel link
-                  </a>
-                )}
-              </li>
-            ))}
+            {sorted.map((sub) => {
+              const badge = billingBadge(sub);
+              return (
+                <li key={sub.id} className="trial-item">
+                  <div className="trial-title">
+                    {sub.service_name || "Unknown Service"}
+                  </div>
+                  <div className="trial-meta">
+                    <span className={`pill ${sub.subscription_type === "free_trial" ? "expiring_soon" : "active"}`}>
+                      {subscriptionLabel(sub)}
+                    </span>
+                    {badge && <span className="pill">{badge}</span>}
+                    {sub.end_date && (
+                      <span>
+                        {sub.subscription_type === "free_trial" ? "Trial ends" : "Renews"}: {sub.end_date}
+                      </span>
+                    )}
+                    {typeof sub.days_remaining === "number" && sub.end_date && (
+                      <span>
+                        {sub.days_remaining < 0
+                          ? "Expired"
+                          : sub.days_remaining === 0
+                          ? "Today"
+                          : `${sub.days_remaining}d left`}
+                      </span>
+                    )}
+                    {sub.status && (
+                      <span className={`pill ${sub.status}`}>
+                        {sub.status.replace("_", " ")}
+                      </span>
+                    )}
+                  </div>
+                  {sub.cancel_url && (
+                    <a href={sub.cancel_url} target="_blank" rel="noreferrer">
+                      Manage / Cancel
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

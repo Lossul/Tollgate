@@ -84,10 +84,10 @@ export default function ScanPage() {
             {signingOut ? "Signing out..." : "Sign Out / Switch Account"}
           </button>
         </div>
-        <h1 id="scan-title">Find every trial in your Gmail.</h1>
+        <h1 id="scan-title">Find every subscription in your Gmail.</h1>
         <p>
-          We will scan up to 200 Gmail messages for trial confirmations and
-          billing notices, then populate your dashboard.
+          We will scan up to 200 Gmail messages for subscription charges,
+          renewal notices, and free trials, then populate your dashboard.
         </p>
         <div>
           <button
@@ -107,9 +107,9 @@ export default function ScanPage() {
           {status === "done" && (
             <>
               <div>Scanned {result?.scanned ?? 0} messages.</div>
-              <div>Added {result?.created ?? 0} trial candidates.</div>
+              <div>Found {result?.created ?? 0} subscription{(result?.created ?? 0) === 1 ? "" : "s"}.</div>
               <div>
-                Head back to the dashboard to see the list as we refine parsing.
+                Head back to the dashboard to see what you&apos;re subscribed to.
               </div>
               <div>
                 <a href="/dashboard">Go to Dashboard</a>

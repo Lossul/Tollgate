@@ -28,17 +28,42 @@ from .trial_parser import parse_trial_email
 from .trial_utils import days_remaining, status_from_end_date
 
 app = FastAPI(title="Tollgate API")
-TRIAL_HINT_TERMS = (
+SUBSCRIPTION_HINT_TERMS = (
+    # free trial signals
     "free trial",
     "trial ending",
     "trial ends",
     "trial expires",
     "trial period",
-    "will be charged",
     "after your trial",
     "cancel anytime",
+    # subscription / billing signals
+    "your subscription",
+    "your membership",
+    "subscription renewed",
+    "membership renewed",
+    "has been renewed",
+    "has been charged",
+    "have been charged",
+    "successfully charged",
+    "will be charged",
+    "billed monthly",
+    "billed annually",
+    "billed yearly",
     "auto-renew",
+    "autorenewal",
+    "auto renewal",
     "renews on",
+    "renewal date",
+    "next billing",
+    "next charge",
+    "payment of",
+    "/month",
+    "/year",
+    "/mo",
+    "/yr",
+    "per month",
+    "per year",
 )
 
 app.add_middleware(
@@ -203,7 +228,13 @@ async def scan_inbox(
             user["google_tokens"] = tokens
             await upsert_user(user)
 
-    query = payload.query or '(trial OR "free trial" OR "trial ending" OR "trial ends" OR subscription OR billing OR renew OR invoice OR charged OR cancel)'
+    query = payload.query or (
+        '(subscription OR membership OR "free trial" OR billing OR invoice'
+        ' OR "has been charged" OR "has been renewed" OR "membership renewed"'
+        ' OR "subscription renewed" OR "auto-renew" OR "next billing"'
+        ' OR "billed monthly" OR "billed annually" OR "billed yearly"'
+        ' OR "will be charged" OR "cancel anytime" OR "renewal date")'
+    )
     try:
         messages = await list_messages(
             access_token, max_results=payload.max_results, query=query
@@ -232,8 +263,10 @@ async def scan_inbox(
 
         parsed = await parse_trial_email(subject=subject, sender=sender, snippet=snippet)
         combined_lower = f"{subject} {snippet} {sender}".lower()
-        has_hint = any(term in combined_lower for term in TRIAL_HINT_TERMS)
-        has_parse_signal = bool(parsed.trial_end_date or parsed.cancel_url)
+        has_hint = any(term in combined_lower for term in SUBSCRIPTION_HINT_TERMS)
+        has_parse_signal = bool(
+            parsed.trial_end_date or parsed.cancel_url or parsed.billing_amount
+        )
         if not parsed.is_trial and not (has_hint and parsed.confidence >= 0.3):
             continue
         if parsed.confidence < 0.35 and not has_parse_signal:
@@ -246,6 +279,9 @@ async def scan_inbox(
                 "id": trial_id,
                 "user_id": user_id,
                 "service_name": parsed.service_name or subject or "Unknown Service",
+                "subscription_type": parsed.subscription_type or "unknown",
+                "billing_amount": parsed.billing_amount,
+                "billing_frequency": parsed.billing_frequency,
                 "start_date": parsed.trial_start_date,
                 "end_date": end_date,
                 "cancel_url": parsed.cancel_url,

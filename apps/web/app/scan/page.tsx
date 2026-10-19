@@ -87,7 +87,8 @@ export default function ScanPage() {
         <h1 id="scan-title">Find every subscription in your Gmail.</h1>
         <p>
           We will scan up to 200 Gmail messages for subscription charges,
-          renewal notices, and free trials, then populate your dashboard.
+          renewal notices, and free trials, plus recent refund and billing
+          problem emails, then populate your dashboard.
         </p>
         <div>
           <button
@@ -107,7 +108,7 @@ export default function ScanPage() {
           {status === "done" && (
             <>
               <div>Scanned {result?.scanned ?? 0} messages.</div>
-              <div>Found {result?.created ?? 0} subscription{(result?.created ?? 0) === 1 ? "" : "s"}.</div>
+              <div>Found {result?.created ?? 0} item{(result?.created ?? 0) === 1 ? "" : "s"} (subscriptions, trials, refunds).</div>
               <div>
                 Head back to the dashboard to see what you&apos;re subscribed to.
               </div>

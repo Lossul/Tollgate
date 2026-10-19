@@ -7,8 +7,11 @@ Scans your Gmail for subscription charges and free trials so you never get surpr
 - Connects to Gmail with read-only access via Google OAuth
 - Scans up to 200 emails for subscription renewals, billing receipts, and free trial notices
 - Extracts service name, billing amount, frequency, and renewal/trial end date
-- Shows a dashboard sorted by what's expiring or renewing soonest
-- Uses Claude AI for parsing when available, falls back to regex heuristics
+- Shows a dashboard sorted by what's expiring or renewing soonest, one row per service
+- Totals what you're paying per month and per year, and what your free trials would cost if they convert
+- Finds refund and "charged twice" emails and lists them in their own section
+- Drafts a cancel email, refund request, or dispute email for any row (templates, no AI needed). Anything it can't know is left as a `[PLACEHOLDER]`
+- Uses Claude AI for parsing when available, falls back to regex heuristics. It runs fully free without an API key
 
 ## Stack
 
@@ -88,6 +91,18 @@ apps/
       dashboard/       # Subscription dashboard
       scan/            # Trigger inbox scan
 ```
+
+## Tests
+
+The API has tests that run with no Gmail account, network, or API keys. They use fake emails in `apps/api/tests/fixtures/emails.json`.
+
+```
+cd apps/api
+pip install -r requirements-dev.txt
+pytest
+```
+
+To teach the parser a new kind of email, add an entry to `emails.json` with the expected result and run `pytest`.
 
 ## Supabase setup (optional)
 

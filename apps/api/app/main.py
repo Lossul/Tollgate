@@ -23,6 +23,9 @@ from .google_oauth import (
     fetch_userinfo,
     refresh_access_token,
 )
+from .drafts import VALID_KINDS, build_draft
+from .refund_parser import REFUND_GMAIL_QUERY, detect_refund
+from .savings import dedupe_by_service, summarize
 from .storage import get_user, list_trials, replace_email_trials, upsert_user
 from .trial_parser import parse_trial_email
 from .trial_utils import days_remaining, status_from_end_date
@@ -69,7 +72,7 @@ SUBSCRIPTION_HINT_TERMS = (
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.web_origin],
-    allow_origin_regex=r"^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$",
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -239,6 +242,18 @@ async def scan_inbox(
         messages = await list_messages(
             access_token, max_results=payload.max_results, query=query
         )
+        # Second pass: refunds and billing problems. Skipped when the caller
+        # passes a custom query, so that stays a plain subscription search.
+        if payload.query is None:
+            refund_messages = await list_messages(
+                access_token,
+                max_results=min(payload.max_results, 100),
+                query=REFUND_GMAIL_QUERY,
+            )
+            seen_ids = {item.get("id") for item in messages}
+            messages = messages + [
+                item for item in refund_messages if item.get("id") not in seen_ids
+            ]
     except GmailAPIError as exc:
         raise HTTPException(status_code=502, detail=f"Gmail API error: {exc}") from exc
 
@@ -260,6 +275,27 @@ async def scan_inbox(
         subject = headers.get("subject", "")
         sender = headers.get("from", "")
         snippet = message.get("snippet", "")
+
+        refund = detect_refund(subject=subject, sender=sender, snippet=snippet)
+        if refund is not None:
+            trials.append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "user_id": user_id,
+                    "service_name": refund.service_name or subject or "Unknown Service",
+                    "subscription_type": refund.kind,
+                    "billing_amount": refund.amount,
+                    "billing_frequency": None,
+                    "start_date": None,
+                    "end_date": None,
+                    "cancel_url": None,
+                    "status": refund.status,
+                    "source": "email",
+                    "email_message_id": message.get("id"),
+                    "created_at": datetime.utcnow().isoformat(),
+                }
+            )
+            continue
 
         parsed = await parse_trial_email(subject=subject, sender=sender, snippet=snippet)
         combined_lower = f"{subject} {snippet} {sender}".lower()
@@ -292,6 +328,9 @@ async def scan_inbox(
             }
         )
 
+    # A monthly subscription sends a receipt every month; keep one row per service.
+    trials = dedupe_by_service(trials)
+
     stored = await replace_email_trials(user_id, trials)
     response_trials = [
         {
@@ -319,7 +358,32 @@ async def get_trials(
         {**trial, "days_remaining": days_remaining(trial.get("end_date"))}
         for trial in user_trials
     ]
-    return JSONResponse({"trials": response_trials})
+    return JSONResponse({"trials": response_trials, "summary": summarize(user_trials)})
+
+
+class DraftRequest(BaseModel):
+    kind: str | None = None
+
+
+@app.post("/trials/{trial_id}/draft")
+async def draft_email(
+    trial_id: str,
+    payload: DraftRequest,
+    session: str | None = Cookie(default=None, alias=settings.session_cookie_name),
+) -> JSONResponse:
+    session_info = _require_session(session)
+    if payload.kind is not None and payload.kind not in VALID_KINDS:
+        raise HTTPException(
+            status_code=400, detail=f"kind must be one of: {', '.join(sorted(VALID_KINDS))}"
+        )
+
+    user_trials = await list_trials(session_info["user_id"])
+    trial = next((t for t in user_trials if t.get("id") == trial_id), None)
+    if trial is None:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    draft = build_draft(trial, payload.kind, user_email=session_info["email"] or None)
+    return JSONResponse(draft)
 
 
 @app.post("/auth/logout")

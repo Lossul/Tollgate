@@ -1,0 +1,111 @@
+[
+  {
+    "name": "netflix_monthly_renewal",
+    "subject": "Your Netflix membership has been renewed",
+    "sender": "Netflix <info@mailer.netflix.com>",
+    "snippet": "Hi Alex, your Netflix membership has been renewed. You were charged $15.49 per month. Next billing date: November 12, 2026.",
+    "expect_refund": null,
+    "expect_subscription": {
+      "is_trial": true,
+      "subscription_type": "paid_subscription",
+      "billing_amount": "$15.49",
+      "billing_frequency": "monthly",
+      "trial_end_date": "2026-11-12"
+    }
+  },
+  {
+    "name": "spotify_annual_receipt",
+    "subject": "Receipt from Spotify",
+    "sender": "Spotify <no-reply@spotify.com>",
+    "snippet": "Payment of $119.88 successfully charged. Billed annually. Your plan renews on December 3, 2026.",
+    "expect_refund": null,
+    "expect_subscription": {
+      "is_trial": true,
+      "subscription_type": "paid_subscription",
+      "billing_amount": "$119.88",
+      "billing_frequency": "yearly",
+      "trial_end_date": "2026-12-03"
+    }
+  },
+  {
+    "name": "notion_free_trial_ending",
+    "subject": "Your free trial ends in 3 days",
+    "sender": "Notion <team@makenotion.com>",
+    "snippet": "Your free trial ends on October 21, 2026. After your trial, you will be charged $10.00/month unless you cancel. Manage your plan at https://www.notion.so/billing",
+    "expect_refund": null,
+    "expect_subscription": {
+      "is_trial": true,
+      "subscription_type": "free_trial",
+      "billing_amount": "$10.00",
+      "billing_frequency": "monthly",
+      "trial_end_date": "2026-10-21"
+    }
+  },
+  {
+    "name": "uber_trip_receipt",
+    "subject": "Your Tuesday evening trip with Uber",
+    "sender": "Uber Receipts <noreply@uber.com>",
+    "snippet": "Total $18.40. Thanks for riding. Here is your trip receipt.",
+    "expect_refund": null,
+    "expect_subscription": {
+      "is_trial": false
+    }
+  },
+  {
+    "name": "medium_daily_digest",
+    "subject": "Daily digest: today's highlights for you",
+    "sender": "Medium Daily Digest <noreply@medium.com>",
+    "snippet": "Stories picked for you. Read more on Medium.",
+    "expect_refund": null,
+    "expect_subscription": {
+      "is_trial": false
+    }
+  },
+  {
+    "name": "adobe_refund_pending",
+    "subject": "Your refund has been issued",
+    "sender": "Adobe <mail@adobe.com>",
+    "snippet": "We've issued a refund of $54.99 to your original payment method. Please allow 5-10 business days for it to appear.",
+    "expect_refund": {
+      "kind": "refund",
+      "status": "refund_pending",
+      "amount": "$54.99"
+    }
+  },
+  {
+    "name": "amazon_refund_received",
+    "subject": "Refund processed for your return",
+    "sender": "Amazon.com <returns@amazon.com>",
+    "snippet": "Your refund of $23.10 has been processed and credited to your Visa card.",
+    "expect_refund": {
+      "kind": "refund",
+      "status": "refund_received",
+      "amount": "$23.10"
+    }
+  },
+  {
+    "name": "dropbox_double_charge",
+    "subject": "We charged you twice",
+    "sender": "Dropbox <no-reply@dropbox.com>",
+    "snippet": "It looks like you were charged twice for your Plus plan: $11.99 on Oct 2. We're sorry about that.",
+    "expect_refund": {
+      "kind": "duplicate_charge",
+      "status": "billing_issue",
+      "amount": "$11.99"
+    }
+  },
+  {
+    "name": "marketing_money_back_guarantee",
+    "subject": "Try it free with our 30-day money-back guarantee",
+    "sender": "SomeApp <hello@someapp.io>",
+    "snippet": "Not happy? Get your money back, no questions asked. See our refund policy for details.",
+    "expect_refund": null
+  },
+  {
+    "name": "policy_update_mentions_refunds",
+    "subject": "We've updated our refund policy",
+    "sender": "Gym Co <news@gymco.com>",
+    "snippet": "Please review our refund policy changes. Memberships are non-refundable after 14 days.",
+    "expect_refund": null
+  }
+]

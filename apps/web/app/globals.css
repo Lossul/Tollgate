@@ -174,6 +174,96 @@ h2 {
   color: #7f1d1d;
 }
 
+.pill.refund_pending,
+.pill.billing_issue {
+  background: #fef3c7;
+  color: #78350f;
+}
+
+.pill.refund_received {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.stat {
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 16px;
+  background: #ffffff;
+  display: grid;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.stat-label {
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.trial-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  font-size: 0.95rem;
+}
+
+.trial-actions a {
+  text-decoration: underline;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: #0b5fff;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.draft-panel {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+}
+
+.draft-body {
+  width: 100%;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  resize: vertical;
+  background: #f8fafc;
+}
+
+.draft-note {
+  color: #475569;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.draft-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;
